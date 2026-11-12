@@ -1,23 +1,19 @@
-# Variables de entorno (NUNCA subir el .env real)
-.env
-
-# Entornos virtuales
-.venv/
-venv/
-
-# Python
+# Python-generated files
 __pycache__/
-*.py[cod]
-*.egg-info/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
 
-# Base de datos local
+# Virtual environments
+.venv
+.env
 *.db
-*.sqlite3
-
-# Tests y cobertura
 .coverage
 htmlcov/
 .pytest_cache/
+.ruff_cache/
 
 # Logs
 *.log

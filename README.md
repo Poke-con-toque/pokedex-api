@@ -13,27 +13,34 @@ API REST con FastAPI para gestionar una Pokédex personal: busca Pokémon en [Po
 
 ## Instalación
 
+Se necesita [uv](https://docs.astral.sh/uv/) (descarga Python 3.12 por sí solo).
+
 ```bash
 git clone https://github.com/Poke-con-toque/pokedex-api.git
 cd pokedex-api
-python -m venv .venv
-source .venv/bin/activate        # En Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env             # y rellena los valores
+uv sync                          # instala las versiones exactas de uv.lock
+cp .env.example .env             # en Windows: copy .env.example .env
+uv run python -c "import secrets; print(secrets.token_urlsafe(32))"   # pega el resultado en SECRET_KEY
 ```
+
+Sin uv también funciona con pip: `pip install -r requirements.txt`.
+
+> `requirements.txt` se genera desde `uv.lock`. Si añades una dependencia con `uv add`, regenéralo con
+> `uv export --format requirements-txt --no-hashes --no-emit-project -o requirements.txt`.
 
 ## Ejecución
 
 ```bash
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
-Documentación interactiva (Swagger): http://localhost:8000/docs
+- Comprobación: http://localhost:8000/health
+- Documentación interactiva (Swagger): http://localhost:8000/docs
 
 ## Testing
 
 ```bash
-pytest --cov=app --cov-report=term-missing
+uv run pytest --cov=app --cov-report=term-missing
 ```
 
 ## Flujo de trabajo
