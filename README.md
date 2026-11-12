@@ -8,8 +8,8 @@ API REST con FastAPI para gestionar una Pokédex personal: busca Pokémon en [Po
 
 | Miembro | Usuario Git | Partes desarrolladas |
 |---|---|---|
-| Miembro A | @usuario-a | Estructura base, autenticación JWT, refresh token, rate limiting y CORS, CRUD de Pokédex, estadísticas, exportación de Pokédex, SECURITY.md |
-| Miembro B | @usuario-b | CI, cliente de PokeAPI, logging, búsqueda de Pokémon, ficha `/card`, equipos, exportación de equipos, API v2, despliegue |
+| Mario Linares | @mariolinaresmerino-commits | Estructura base, autenticación JWT, refresh token, rate limiting y CORS, CRUD de Pokédex, estadísticas, exportación de Pokédex, SECURITY.md |
+| Adrián | @adriandczv | CI, cliente de PokeAPI, logging, búsqueda de Pokémon, ficha `/card`, equipos, exportación de equipos, API v2, despliegue |
 
 ## Instalación
 
