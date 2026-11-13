@@ -16,8 +16,17 @@ from app.database import get_session
 from app.limits import limiter
 from app.main import app
 from app.models import User
+from app.services.pokeapi_service import limpiar_cache
 
 PASSWORD = "Pikachu2026"
+
+
+@pytest.fixture(autouse=True)
+def cache_vacia():
+    # La caché de la PokeAPI es global: se vacía para que cada test parta de cero.
+    limpiar_cache()
+    yield
+    limpiar_cache()
 
 
 @pytest.fixture
