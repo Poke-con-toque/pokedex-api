@@ -68,6 +68,8 @@ class PokedexEntry(PokedexEntryBase, table=True):
     pokemon_id: int = Field(index=True)
     pokemon_name: str
     pokemon_sprite: str | None = None
+    # Tipos separados por comas ("grass,poison"): se guardan al añadirlo para las estadísticas.
+    pokemon_types: str | None = None
     capture_date: datetime | None = None
     created_at: datetime = Field(default_factory=ahora)
 
@@ -84,6 +86,7 @@ class PokedexEntryRead(PokedexEntryBase):
     pokemon_id: int
     pokemon_name: str
     pokemon_sprite: str | None
+    pokemon_types: str | None
     capture_date: datetime | None
     created_at: datetime
 
