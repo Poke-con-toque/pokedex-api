@@ -1,4 +1,4 @@
-"""Dependencias compartidas: sesión y usuario actual."""
+"""Dependencias compartidas: sesión, usuario actual y servicio de la PokeAPI."""
 
 import logging
 from typing import Annotated
@@ -8,8 +8,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session
 
 from app.auth import decode_access_token
+from app.config import settings
 from app.database import get_session
 from app.models import User
+from app.services.pokeapi_service import PokeAPIService
 
 LOGIN_URL = "/api/v1/auth/login"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=LOGIN_URL)
@@ -39,3 +41,14 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_pokeapi_service() -> PokeAPIService:
+    return PokeAPIService(
+        settings.pokeapi_base_url,
+        timeout=settings.pokeapi_timeout,
+        usar_reserva=settings.pokeapi_fallback,
+    )
+
+
+ServicioPokeAPI = Annotated[PokeAPIService, Depends(get_pokeapi_service)]
