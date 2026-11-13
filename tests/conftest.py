@@ -7,6 +7,7 @@ os.environ.setdefault("SECRET_KEY", "clave-solo-para-tests")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 
 import pytest
+import respx
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
@@ -17,6 +18,7 @@ from app.limits import limiter
 from app.main import app
 from app.models import User
 from app.services.pokeapi_service import limpiar_cache
+from tests.pokeapi_mocks import BASE, DATOS, pokemon_bruto
 
 PASSWORD = "Pikachu2026"
 
@@ -87,3 +89,14 @@ def other_user(session) -> User:
 @pytest.fixture
 def other_headers(client, other_user) -> dict:
     return cabeceras(client, other_user.username)
+
+
+@pytest.fixture
+def pokeapi():
+    """PokeAPI simulada: conoce los Pokémon de pokeapi_mocks.DATOS y da 404 al resto."""
+    with respx.mock(assert_all_called=False) as simulada:
+        for pid, (nombre, *_resto) in DATOS.items():
+            for clave in (pid, nombre):
+                simulada.get(f"{BASE}/pokemon/{clave}").respond(json=pokemon_bruto(pid))
+        simulada.get(url__startswith=f"{BASE}/pokemon/").respond(404)
+        yield simulada
