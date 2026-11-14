@@ -11,8 +11,13 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+from app.auth import hash_password
 from app.database import get_session
+from app.limits import limiter
 from app.main import app
+from app.models import User
+
+PASSWORD = "Pikachu2026"
 
 
 @pytest.fixture
@@ -28,7 +33,48 @@ def session():
 
 @pytest.fixture
 def client(session):
+    # El contador del limitador vive en memoria: sin esto, unos tests agotarían el cupo de otros.
+    limiter.reset()
     app.dependency_overrides[get_session] = lambda: session
     with TestClient(app) as client:
         yield client
     app.dependency_overrides.clear()
+
+
+def crear_usuario(session, username: str) -> User:
+    usuario = User(
+        username=username,
+        email=f"{username}@ufv.es",
+        hashed_password=hash_password(PASSWORD),
+    )
+    session.add(usuario)
+    session.commit()
+    session.refresh(usuario)
+    return usuario
+
+
+def cabeceras(client, username: str) -> dict:
+    respuesta = client.post(
+        "/api/v1/auth/login", data={"username": username, "password": PASSWORD}
+    )
+    return {"Authorization": f"Bearer {respuesta.json()['access_token']}"}
+
+
+@pytest.fixture
+def test_user(session) -> User:
+    return crear_usuario(session, "ash")
+
+
+@pytest.fixture
+def auth_headers(client, test_user) -> dict:
+    return cabeceras(client, test_user.username)
+
+
+@pytest.fixture
+def other_user(session) -> User:
+    return crear_usuario(session, "gary")
+
+
+@pytest.fixture
+def other_headers(client, other_user) -> dict:
+    return cabeceras(client, other_user.username)
