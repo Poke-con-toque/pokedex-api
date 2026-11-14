@@ -5,6 +5,7 @@ from io import BytesIO
 
 import httpx
 from fpdf import FPDF
+from fpdf.errors import FPDFException
 
 logger = logging.getLogger("pokedex_api.pdf")
 
@@ -33,7 +34,7 @@ def crear_ficha_pokemon(pokemon: dict, descripcion: str | None = None) -> bytes:
     if sprite is not None:
         try:
             pdf.image(sprite, x=150, y=25, w=40, h=40)
-        except Exception:
+        except (FPDFException, OSError, TypeError, ValueError):
             logger.warning("El sprite de %s no tiene un formato compatible", pokemon["name"])
 
     pdf.set_font("Helvetica", "B", 12)
