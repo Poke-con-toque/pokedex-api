@@ -78,6 +78,7 @@ httpx==0.28.1
     #   fastapi
     #   fastapi-cloud-cli
     #   pokedex-api
+    #   respx
 httpx2==2.14.0
     # via fastapi
 httpx2-jsfetch==1.0 ; sys_platform == 'emscripten'
@@ -165,7 +166,10 @@ pygments==2.21.0
     #   pytest
     #   rich
 pytest==9.1.1
-    # via pytest-cov
+    # via
+    #   pytest-asyncio
+    #   pytest-cov
+pytest-asyncio==1.5.0
 pytest-cov==7.1.0
 python-dotenv==1.2.4
     # via
@@ -181,6 +185,7 @@ requests==2.34.2
     # via
     #   opentelemetry-exporter-http-transport
     #   opentelemetry-exporter-otlp-proto-http
+respx==0.23.1
 rich==15.0.0
     # via
     #   rich-toolkit
@@ -230,6 +235,7 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   pydantic-extra-types
     #   pydantic-settings
+    #   pytest-asyncio
     #   rich-toolkit
     #   sqlalchemy
     #   sqlmodel
