@@ -94,7 +94,9 @@ async def registrar_peticiones(request: Request, call_next):
 
 
 for modulo in (auth, pokemon, pokedex, teams):
-    app.include_router(modulo.router, prefix="/api/v1")\n\napp.include_router(v2.router, prefix="/api/v2")
+    app.include_router(modulo.router, prefix="/api/v1")
+
+app.include_router(v2.router, prefix="/api/v2")
 
 
 @app.get("/health", tags=["sistema"])
