@@ -102,7 +102,7 @@ El registro está limitado a 5 solicitudes por hora y el login a 10 por minuto p
 
 ### Versionado
 
-Las rutas llevan un prefijo explícito: `/api/v1` o `/api/v2`. Se abre una versión nueva cuando un cambio incompatible afecta las respuestas o el comportamiento de clientes existentes. La v2 conserva las funciones de v1 y añade la cadena evolutiva a `GET /api/v2/pokedex`. La v1 seguirá disponible durante la transición; antes de retirarla se anunciarán la fecha y el periodo de migración, junto con cabeceras `Deprecation` y `Sunset`.
+Las rutas llevan un prefijo explícito: `/api/v1` o `/api/v2`. Se abre una versión nueva cuando un cambio incompatible afecta las respuestas o el comportamiento de clientes existentes. La v2 añade, en paralelo a v1, `GET /api/v2/pokedex` con los mismos filtros y la cadena evolutiva; los demás endpoints siguen disponibles bajo `/api/v1`. La v1 seguirá disponible durante la transición; antes de retirarla se anunciarán la fecha y el periodo de migración, junto con cabeceras `Deprecation` y `Sunset`.
 
 ### Otras decisiones
 
