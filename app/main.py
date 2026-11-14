@@ -17,7 +17,7 @@ from app.config import settings
 from app.database import create_db_and_tables
 from app.limits import limiter
 from app.logging_config import configurar_logging
-from app.routers import auth, pokedex, pokemon
+from app.routers import auth, pokedex, pokemon, teams
 
 configurar_logging()
 logger = logging.getLogger("pokedex_api")
@@ -93,7 +93,7 @@ async def registrar_peticiones(request: Request, call_next):
     return respuesta
 
 
-for modulo in (auth, pokemon, pokedex):
+for modulo in (auth, pokemon, pokedex, teams):
     app.include_router(modulo.router, prefix="/api/v1")
 
 
