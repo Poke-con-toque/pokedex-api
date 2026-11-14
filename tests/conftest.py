@@ -6,6 +6,8 @@ import os
 os.environ.setdefault("SECRET_KEY", "clave-solo-para-tests")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 
+import bcrypt
+import httpx
 import pytest
 import respx
 from fastapi.testclient import TestClient
@@ -18,9 +20,18 @@ from app.limits import limiter
 from app.main import app
 from app.models import User
 from app.services.pokeapi_service import limpiar_cache
-from tests.pokeapi_mocks import BASE, DATOS, pokemon_bruto
+from tests.pokeapi_mocks import BASE, DATOS, lista_bruta, pokemon_bruto
 
 PASSWORD = "Pikachu2026"
+
+
+_gensalt = bcrypt.gensalt
+
+
+@pytest.fixture(autouse=True)
+def bcrypt_rapido(monkeypatch):
+    # En producción bcrypt usa 12 rondas (lento a propósito). En los tests bastan 4.
+    monkeypatch.setattr(bcrypt, "gensalt", lambda: _gensalt(rounds=4))
 
 
 @pytest.fixture(autouse=True)
@@ -98,5 +109,13 @@ def pokeapi():
         for pid, (nombre, *_resto) in DATOS.items():
             for clave in (pid, nombre):
                 simulada.get(f"{BASE}/pokemon/{clave}").respond(json=pokemon_bruto(pid))
+        simulada.get(url__regex=rf"^{BASE}/pokemon\?limit=\d+&offset=\d+$").mock(
+            side_effect=lambda peticion: httpx.Response(
+                200,
+                json=lista_bruta(
+                    int(peticion.url.params["limit"]), int(peticion.url.params["offset"])
+                ),
+            )
+        )
         simulada.get(url__startswith=f"{BASE}/pokemon/").respond(404)
         yield simulada
