@@ -1,5 +1,7 @@
 # Pokédex API
 
+![CI](https://github.com/Poke-con-toque/pokedex-api/actions/workflows/ci.yml/badge.svg)
+
 API REST con FastAPI para gestionar una Pokédex personal: busca Pokémon en [PokeAPI](https://pokeapi.co/), guárdalos en tu colección, marca los capturados y crea equipos de batalla.
 
 > Práctica 1 · Módulo 2: APIs REST y Fundamentos de Integración · Sistemas de Información (UFV)
