@@ -5,7 +5,10 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -13,11 +16,10 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.database import create_db_and_tables
 from app.limits import limiter
+from app.logging_config import configurar_logging
 from app.routers import auth, pokedex, pokemon
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s · %(message)s"
-)
+configurar_logging()
 logger = logging.getLogger("pokedex_api")
 
 
@@ -39,14 +41,41 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
+    max_age=3600,
 )
 
-# @limiter.limit en los endpoints de auth necesita esto para funcionar.
+
+def registrar_rate_limit(request: Request, exc: RateLimitExceeded):
+    logger.warning(
+        "Límite excedido: %s %s desde %s",
+        request.method,
+        request.url.path,
+        request.client.host if request.client else "desconocido",
+    )
+    return _rate_limit_exceeded_handler(request, exc)
+
+
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, registrar_rate_limit)
 app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(RequestValidationError)
+async def registrar_error_validacion(request: Request, exc: RequestValidationError):
+    # No registramos los valores recibidos: podrían contener contraseñas u otros datos privados.
+    errores = [{"loc": error.get("loc"), "type": error.get("type")} for error in exc.errors()]
+    logger.warning(
+        "Error de validación en %s %s: %s",
+        request.method,
+        request.url.path,
+        errores,
+    )
+    return JSONResponse(
+        status_code=422,
+        content={"detail": jsonable_encoder(exc.errors())},
+    )
 
 
 @app.middleware("http")
