@@ -13,7 +13,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.database import create_db_and_tables
 from app.limits import limiter
-from app.routers import auth
+from app.routers import auth, pokedex
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s · %(message)s"
@@ -64,7 +64,7 @@ async def registrar_peticiones(request: Request, call_next):
     return respuesta
 
 
-for modulo in (auth,):
+for modulo in (auth, pokedex):
     app.include_router(modulo.router, prefix="/api/v1")
 
 
