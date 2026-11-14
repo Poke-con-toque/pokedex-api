@@ -53,3 +53,8 @@ uv run pytest --cov=app --cov-report=term-missing
 - `fix/<nombre>`: corrección de errores ya integrados.
 
 *(Pendiente: Configuración, Endpoints, Decisiones de Diseño, Decisiones de Seguridad, Mejoras Futuras.)*
+
+
+## Decisiones de Diseño: Versionado
+
+La API publica sus rutas bajo prefijos explícitos: `/api/v1` y `/api/v2`. Se crea una versión nueva cuando un cambio incompatible altera la forma de las respuestas o el comportamiento esperado por los clientes. La v2 conserva las funciones de v1 y añade la cadena evolutiva a `GET /api/v2/pokedex`. La v1 seguirá disponible durante la transición; antes de retirarla se documentarán la fecha de retirada y el periodo de migración, y se publicarán cabeceras `Deprecation` y `Sunset`.
