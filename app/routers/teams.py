@@ -1,13 +1,15 @@
 """Gestión de equipos de batalla propiedad de cada usuario."""
 
+import re
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, Field, field_validator
 from sqlmodel import select
 
-from app.dependencies import CurrentUser, SessionDep
+from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
 from app.models import PokedexEntry, Team, TeamMember
+from app.services.pdf_service import crear_pdf_equipo
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
@@ -147,6 +149,37 @@ def actualizar(team_id: int, datos: TeamCreate, usuario: CurrentUser, session: S
     session.commit()
     session.refresh(equipo)
     return _serializar(session, equipo)
+
+
+@router.get("/{team_id}/export")
+async def exportar_equipo(
+    team_id: int,
+    usuario: CurrentUser,
+    session: SessionDep,
+    poke: ServicioPokeAPI,
+):
+    equipo = _equipo_propio(session, team_id, usuario)
+    miembros = session.exec(
+        select(TeamMember)
+        .where(TeamMember.team_id == equipo.id)
+        .order_by(TeamMember.position)
+    ).all()
+    entradas = [
+        session.get(PokedexEntry, miembro.pokedex_entry_id)
+        for miembro in miembros
+    ]
+    pokemon = [
+        await poke.get_pokemon(entrada.pokemon_id)
+        for entrada in entradas
+        if entrada is not None
+    ]
+    contenido = crear_pdf_equipo(equipo.name, equipo.description, pokemon)
+    nombre_archivo = re.sub(r"[^a-zA-Z0-9_-]+", "-", equipo.name).strip("-").lower() or "equipo"
+    return Response(
+        content=contenido,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="equipo-{nombre_archivo}.pdf"'},
+    )
 
 
 @router.delete("/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
