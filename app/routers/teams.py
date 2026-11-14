@@ -1,13 +1,15 @@
 """Gestión de equipos de batalla propiedad de cada usuario."""
 
-from datetime import datetime\nimport re
+import re
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, Field, field_validator
 from sqlmodel import select
 
 from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
-from app.models import PokedexEntry, Team, TeamMember\nfrom app.services.pdf_service import crear_pdf_equipo
+from app.models import PokedexEntry, Team, TeamMember
+from app.services.pdf_service import crear_pdf_equipo
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
