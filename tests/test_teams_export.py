@@ -1,6 +1,7 @@
 """Pruebas de exportación de equipos y estadísticas combinadas."""
 
 from app.models import Team
+from app.services import pdf_service
 from app.services.pdf_service import calcular_estadisticas_equipo
 
 
@@ -17,7 +18,8 @@ def test_estadisticas_combinadas_suman_y_promedian():
     assert resultado["types"] == ["electric", "ice", "water"]
 
 
-def test_exportar_equipo_devuelve_pdf(client, auth_headers, pokeapi):
+def test_exportar_equipo_devuelve_pdf(client, auth_headers, pokeapi, monkeypatch):
+    monkeypatch.setattr(pdf_service, "_descargar_sprite", lambda _url: None)
     client.post("/api/v1/pokedex", json={"pokemon_id": 25}, headers=auth_headers)
     equipo = client.post(
         "/api/v1/teams",
