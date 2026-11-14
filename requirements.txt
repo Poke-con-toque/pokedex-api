@@ -51,6 +51,7 @@ email-validator==2.3.0
     #   fastapi
     #   pydantic
 fastapi==0.148.0
+fpdf2>=2.8.4
     # via pokedex-api
 fastapi-cli==0.0.32
     # via fastapi
