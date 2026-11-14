@@ -1,7 +1,7 @@
 """Funciones PDF reutilizables para fichas y exportaciones."""
 
-from io import BytesIO
 import logging
+from io import BytesIO
 
 import httpx
 from fpdf import FPDF
@@ -33,7 +33,7 @@ def crear_ficha_pokemon(pokemon: dict, descripcion: str | None = None) -> bytes:
     if sprite is not None:
         try:
             pdf.image(sprite, x=150, y=25, w=40, h=40)
-        except (ValueError, TypeError):
+        except Exception:
             logger.warning("El sprite de %s no tiene un formato compatible", pokemon["name"])
 
     pdf.set_font("Helvetica", "B", 12)
