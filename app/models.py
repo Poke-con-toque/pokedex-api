@@ -100,6 +100,39 @@ class PokedexEntryUpdate(SQLModel):
     capture_date: datetime | None = None
 
 
+# ───────────────────────────── PokeAPI ─────────────────────────────
+# Contratos de salida de /pokemon: no son tablas, sólo documentan la respuesta en /docs.
+
+
+class PokemonSummary(SQLModel):
+    id: int
+    name: str
+    sprite: str | None
+    types: list[str]
+
+
+class PokemonStats(SQLModel):
+    hp: int | None
+    attack: int | None
+    defense: int | None
+    speed: int | None
+
+
+class PokemonSprites(SQLModel):
+    front_default: str | None
+    back_default: str | None
+    front_shiny: str | None
+    official_artwork: str | None
+
+
+class PokemonDetail(PokemonSummary):
+    stats: PokemonStats
+    abilities: list[str]
+    sprites: PokemonSprites
+    height: int | None
+    weight: int | None
+
+
 # ───────────────────────────── Equipos ─────────────────────────────
 
 
