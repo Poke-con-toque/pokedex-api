@@ -1,10 +1,24 @@
 """Pruebas de exportación de fichas Pokémon en PDF."""
 
 from app.services import pdf_service
+from tests.pokeapi_mocks import BASE
+
+
+def mock_especie(pokeapi):
+    pokeapi.get(f"{BASE}/pokemon-species/25").respond(
+        json={
+            "id": 25,
+            "name": "pikachu",
+            "flavor_text_entries": [],
+            "genera": [],
+            "evolution_chain": {"url": None},
+        }
+    )
 
 
 def test_ficha_devuelve_pdf_y_nombre_de_descarga(client, auth_headers, pokeapi, monkeypatch):
     monkeypatch.setattr(pdf_service, "_descargar_sprite", lambda _url: None)
+    mock_especie(pokeapi)
 
     respuesta = client.get("/api/v1/pokemon/pikachu/card", headers=auth_headers)
 
@@ -25,6 +39,7 @@ def test_ficha_requiere_autenticacion(client):
 
 def test_ficha_se_genera_sin_sprite(client, auth_headers, pokeapi, monkeypatch):
     monkeypatch.setattr(pdf_service, "_descargar_sprite", lambda _url: None)
+    mock_especie(pokeapi)
     respuesta = client.get("/api/v1/pokemon/25/card", headers=auth_headers)
     assert respuesta.status_code == 200
     assert respuesta.content.startswith(b"%PDF")
