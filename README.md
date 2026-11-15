@@ -148,15 +148,16 @@ Las rutas llevan un prefijo explícito: `/api/v1` o `/api/v2`. Se abre una versi
 - Rate limiting diferenciado por tipo de endpoint (ver «Decisiones de Diseño»).
 - La exportación CSV neutraliza las celdas que empiezan por `=`, `+`, `-` o `@` para evitar la inyección de fórmulas en Excel.
 - Los logs de errores de validación no guardan los valores recibidos, para no registrar contraseñas.
+- Las claves y la URL de base de datos se configuran en variables de entorno.
 
 El detalle completo, con la revisión del OWASP API Security Top 10, está en [SECURITY.md](SECURITY.md).
-- Las claves y la URL de base de datos se configuran en variables de entorno.
 
 ## Mejoras Futuras
 
 - Refresh tokens de 7 días, para no tener que volver a iniciar sesión cada 24 horas.
 - Guardar los contadores del rate limiting en Redis, para que se compartan entre varias instancias y no se reinicien al reiniciar la API.
-- Migraciones de base de datos con Alembic, recuperación de contraseña y despliegue en Render.
+- Migraciones de base de datos con Alembic y recuperación de contraseña.
+- Una base de datos PostgreSQL persistente en el despliegue, porque SQLite en Render gratuito pierde los datos al reiniciar.
 - Enviar las cabeceras `Deprecation` y `Sunset` en v1 cuando se planifique su retirada.
 - Mantener las dependencias y reglas de acceso actualizadas.
 
