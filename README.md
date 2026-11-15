@@ -40,7 +40,8 @@ También se pueden instalar las dependencias con `pip install -r requirements.tx
 | `POKEAPI_TIMEOUT` | Tiempo máximo de espera para PokeAPI, en segundos | `5` |
 | `POKEAPI_FALLBACK` | Activa datos locales de reserva si PokeAPI no responde | `false` |
 | `ALGORITHM` | Algoritmo de firma JWT | `HS256` por defecto |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del token de acceso | `1440` por defecto |\n| `TOTAL_POKEMON` | Número de especies para calcular el porcentaje de Pokédex completada | `1025` por defecto |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del token de acceso | `1440` por defecto |
+| `TOTAL_POKEMON` | Número de especies para calcular el porcentaje de Pokédex completada | `1025` por defecto |
 
 No subas el archivo `.env` ni claves reales al repositorio.
 
