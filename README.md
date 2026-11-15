@@ -101,7 +101,7 @@ Las rutas de la API requieren un token Bearer salvo registro, login y `/health`.
 - Los commits siguen *Conventional Commits* (`feat`, `fix`, `test`, `docs`, `refactor`, `chore`).
 - Cada funcionalidad tiene su issue, organizada en el tablero de [GitHub Projects](https://github.com/orgs/Poke-con-toque/projects); el PR la cierra con `Closes #N`.
 - La versión entregada es la etiqueta `v1.0.0` de `main`.
-- El despliegue público en Render es opcional y aún no está configurado.
+- Demo pública desplegada en Render: [API](https://pokedex-api-qu6m.onrender.com) · [documentación interactiva](https://pokedex-api-qu6m.onrender.com/docs). GitHub Actions despliega desde `main` cuando pasan las pruebas. Usa SQLite temporal: Render gratuito puede perder datos al reiniciar o volver a desplegar.
 
 ## Decisiones de Diseño
 
