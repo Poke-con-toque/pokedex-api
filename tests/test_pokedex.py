@@ -222,7 +222,7 @@ def test_basic_stats(client, auth_headers, tres_entradas):
     assert stats["total_pokemon"] == 3
     assert stats["captured"] == 1
     assert stats["favorites"] == 1
-    assert stats["completion_percentage"] == 33.3
+    assert stats["completion_percentage"] == 0.1  # 1 de 1025 especies
 
 
 def test_basic_stats_empty(client, auth_headers):
