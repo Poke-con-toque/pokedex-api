@@ -51,7 +51,6 @@ email-validator==2.3.0
     #   fastapi
     #   pydantic
 fastapi==0.148.0
-fpdf2>=2.8.4
     # via pokedex-api
 fastapi-cli==0.0.32
     # via fastapi
@@ -61,6 +60,10 @@ fastar==0.12.0
     # via
     #   fastapi
     #   fastapi-cloud-cli
+fonttools==4.68.0
+    # via fpdf2
+fpdf2==2.9.0
+    # via pokedex-api
 googleapis-common-protos==1.75.5
     # via opentelemetry-exporter-otlp-proto-http
 h11==0.16.0
@@ -133,6 +136,8 @@ packaging==26.3
     # via
     #   limits
     #   pytest
+pillow==13.0.0
+    # via fpdf2
 pluggy==1.7.0
     # via
     #   pytest
