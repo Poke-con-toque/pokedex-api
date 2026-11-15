@@ -36,7 +36,9 @@ def test_stats_empty_pokedex(client, auth_headers):
     }
 
 
-def test_stats_counts_and_percentage(client, session, auth_headers, test_user):
+def test_stats_counts_and_percentage(client, session, auth_headers, test_user, monkeypatch):
+    from app.config import settings
+
     hoy = ahora()
     entrada(session, test_user, 25, "electric", capturado=True, fecha=hoy)
     entrada(session, test_user, 1, "grass,poison", favorito=True)
@@ -45,7 +47,11 @@ def test_stats_counts_and_percentage(client, session, auth_headers, test_user):
     assert stats["total_pokemon"] == 3
     assert stats["captured"] == 1
     assert stats["favorites"] == 1
-    assert stats["completion_percentage"] == 33.3
+    assert stats["completion_percentage"] == 0.1  # 1 / 1025 * 100, redondeado
+
+    monkeypatch.setattr(settings, "total_pokemon", 4)
+    stats_configurada = client.get(STATS, headers=auth_headers).json()
+    assert stats_configurada["completion_percentage"] == 25.0
 
 
 def test_stats_most_common_type(client, session, auth_headers, test_user):
