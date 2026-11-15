@@ -3,6 +3,13 @@
 BASE = "https://pokeapi.co/api/v2"
 SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
 
+# Imagen PNG válida de 1x1 píxeles, para simular la descarga de sprites.
+PNG_1X1 = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02"
+    b"\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x03\x01"
+    b"\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
 DATOS = {
     1: ("bulbasaur", ["grass", "poison"], (45, 49, 49, 65, 65, 45), ["overgrow", "chlorophyll"]),
     4: ("charmander", ["fire"], (39, 52, 43, 60, 50, 65), ["blaze", "solar-power"]),
