@@ -149,3 +149,33 @@ def crear_pdf_equipo(
     tipos = ", ".join(calculadas["types"]) or "Sin datos"
     pdf.cell(0, 8, _texto(f"Tipos cubiertos: {tipos}"))
     return bytes(pdf.output())
+
+
+def crear_pdf_pokedex(usuario: str, filas: list[dict], filtros: str) -> bytes:
+    """Genera un PDF con la Pokédex del usuario en forma de tabla."""
+    pdf = FPDF(orientation="landscape")
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    _titulo(pdf, f"Pokédex de {usuario}", tamano=20)
+    _parrafo(pdf, f"{len(filas)} Pokémon · {filtros}")
+    pdf.ln(3)
+
+    columnas = ("#", "Pokémon", "Mote", "Tipos", "Capturado", "Fecha de captura", "Favorito")
+    pdf.set_font("Helvetica", size=10)
+    with pdf.table(col_widths=(12, 40, 40, 45, 25, 45, 22), text_align="LEFT") as tabla:
+        cabecera = tabla.row()
+        for columna in columnas:
+            cabecera.cell(_texto(columna))
+        for fila in filas:
+            celdas = tabla.row()
+            for valor in (
+                fila["pokemon_id"],
+                fila["pokemon_name"].title(),
+                fila["nickname"] or "",
+                fila["types"].replace(",", ", "),
+                "Sí" if fila["is_captured"] else "No",
+                fila["capture_date"],
+                "Sí" if fila["favorite"] else "No",
+            ):
+                celdas.cell(_texto(valor))
+    return bytes(pdf.output())

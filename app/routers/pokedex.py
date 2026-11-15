@@ -1,5 +1,7 @@
 """CRUD de la Pokédex personal: cada usuario sólo ve y toca lo suyo."""
 
+import csv
+import io
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -21,6 +23,7 @@ from app.models import (
     TeamMember,
     ahora,
 )
+from app.services.pdf_service import crear_pdf_pokedex
 
 router = APIRouter(prefix="/pokedex", tags=["pokedex"])
 
@@ -155,6 +158,96 @@ def estadisticas(request: Request, usuario: CurrentUser, session: SessionDep):
         "most_common_type": tipo_mas_comun(tipos),
         "capture_streak_days": racha_de_capturas(fechas, ahora().date()),
     }
+
+
+COLUMNAS_EXPORTACION = (
+    "pokemon_id",
+    "pokemon_name",
+    "nickname",
+    "types",
+    "is_captured",
+    "capture_date",
+    "favorite",
+    "notes",
+)
+
+
+def _fila(entrada: PokedexEntry) -> dict:
+    return {
+        "pokemon_id": entrada.pokemon_id,
+        "pokemon_name": entrada.pokemon_name,
+        "nickname": entrada.nickname,
+        "types": entrada.pokemon_types or "",
+        "is_captured": entrada.is_captured,
+        "capture_date": entrada.capture_date.strftime("%Y-%m-%d %H:%M") if entrada.capture_date else "",
+        "favorite": entrada.favorite,
+        "notes": entrada.notes,
+    }
+
+
+def _celda_csv(valor) -> str:
+    """Evita la inyección de fórmulas: Excel ejecuta celdas que empiezan por = + - @."""
+    texto = "" if valor is None else str(valor)
+    return f"'{texto}" if texto[:1] in ("=", "+", "-", "@", "\t", "\r") else texto
+
+
+def _csv(filas: list[dict]) -> bytes:
+    salida = io.StringIO()
+    escritor = csv.writer(salida)
+    escritor.writerow(COLUMNAS_EXPORTACION)
+    for fila in filas:
+        escritor.writerow(_celda_csv(fila[columna]) for columna in COLUMNAS_EXPORTACION)
+    # BOM UTF-8: así Excel abre bien las tildes y la ñ.
+    return ("\ufeff" + salida.getvalue()).encode("utf-8")
+
+
+# /export va ANTES que /{entry_id}, por el mismo motivo que /stats.
+@router.get(
+    "/export",
+    responses={
+        200: {
+            "content": {"text/csv": {}, "application/pdf": {}},
+            "description": "Archivo descargable con la Pokédex",
+        }
+    },
+)
+@limiter.limit(LIMITE_GENERAL)
+def exportar(
+    request: Request,
+    usuario: CurrentUser,
+    session: SessionDep,
+    format: Literal["csv", "pdf"] = "csv",
+    captured: bool | None = None,
+    favorite: bool | None = None,
+):
+    """Descarga la Pokédex completa en CSV o PDF, con filtros opcionales."""
+    consulta = select(PokedexEntry).where(PokedexEntry.owner_id == usuario.id)
+    if captured is not None:
+        consulta = consulta.where(PokedexEntry.is_captured == captured)
+    if favorite is not None:
+        consulta = consulta.where(PokedexEntry.favorite == favorite)
+    filas = [_fila(e) for e in session.exec(consulta.order_by(PokedexEntry.pokemon_id)).all()]
+
+    if format == "pdf":
+        descripcion = ", ".join(
+            texto
+            for activo, texto in (
+                (captured is True, "solo capturados"),
+                (captured is False, "solo sin capturar"),
+                (favorite is True, "solo favoritos"),
+                (favorite is False, "sin favoritos"),
+            )
+            if activo
+        ) or "todos"
+        contenido, tipo = crear_pdf_pokedex(usuario.username, filas, descripcion), "application/pdf"
+    else:
+        contenido, tipo = _csv(filas), "text/csv; charset=utf-8"
+
+    return Response(
+        content=contenido,
+        media_type=tipo,
+        headers={"Content-Disposition": f'attachment; filename="pokedex.{format}"'},
+    )
 
 
 def _entrada_propia(session, entry_id: int, usuario) -> PokedexEntry:
