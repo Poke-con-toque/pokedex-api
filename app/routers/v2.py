@@ -2,9 +2,10 @@
 
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
+from app.limits import LIMITE_POKEAPI, limiter
 from app.models import PokedexEntry, PokedexEntryV2Read
 from app.routers.pokedex import Filtros, entradas_filtradas
 
@@ -12,7 +13,9 @@ router = APIRouter(prefix="/pokedex", tags=["pokedex-v2"])
 
 
 @router.get("", response_model=list[PokedexEntryV2Read])
+@limiter.limit(LIMITE_POKEAPI)  # pide especie y evolución de cada entrada
 async def listar_v2(
+    request: Request,
     usuario: CurrentUser,
     session: SessionDep,
     poke: ServicioPokeAPI,
