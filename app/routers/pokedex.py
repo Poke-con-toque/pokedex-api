@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import func, select
 
+from app.config import settings
 from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
 from app.limits import LIMITE_GENERAL, LIMITE_POKEAPI, limiter
 from app.models import (
@@ -112,9 +113,7 @@ def _contar(session, *condiciones) -> int:
 
 def tipo_mas_comun(tipos_por_entrada: list[str | None]) -> str | None:
     """Tipo que más se repite en la Pokédex; si empatan, el primero alfabéticamente."""
-    contador = Counter(
-        tipo for tipos in tipos_por_entrada if tipos for tipo in tipos.split(",")
-    )
+    contador = Counter(tipo for tipos in tipos_por_entrada if tipos for tipo in tipos.split(","))
     if not contador:
         return None
     return min(contador, key=lambda tipo: (-contador[tipo], tipo))
@@ -143,8 +142,8 @@ def estadisticas(request: Request, usuario: CurrentUser, session: SessionDep):
     total = _contar(session, mias)
     capturados = _contar(session, mias, PokedexEntry.is_captured)
     favoritos = _contar(session, mias, PokedexEntry.favorite)
-    # Como en clase: porcentaje de tu Pokédex que ya has capturado.
-    porcentaje = round(100 * capturados / total, 1) if total else 0.0
+    # El porcentaje se calcula respecto a todas las especies disponibles (1025 por defecto).
+    porcentaje = round(100 * capturados / settings.total_pokemon, 1) if settings.total_pokemon else 0.0
     tipos = session.exec(select(PokedexEntry.pokemon_types).where(mias)).all()
     fechas = session.exec(
         select(PokedexEntry.capture_date).where(
@@ -187,10 +186,10 @@ def _fila(entrada: PokedexEntry) -> dict:
 
 
 def _celda_csv(valor) -> str:
-    """Evita la inyección de fórmulas: Excel ejecuta celdas que empiezan por = + - @."""
+    """Evita fórmulas en Excel incluso si comienzan tras espacios o controles."""
     texto = "" if valor is None else str(valor)
-    return f"'{texto}" if texto[:1] in ("=", "+", "-", "@", "\t", "\r") else texto
-
+    potencial_formula = texto.lstrip(" \t\r\n")
+    return f"'{texto}" if potencial_formula[:1] in ("=", "+", "-", "@") else texto
 
 def _csv(filas: list[dict]) -> bytes:
     salida = io.StringIO()
@@ -267,8 +266,8 @@ def detalle(request: Request, entry_id: int, usuario: CurrentUser, session: Sess
 
 @router.patch("/{entry_id}", response_model=PokedexEntryRead)
 @limiter.limit(LIMITE_GENERAL)
-def actualizar(request: Request, 
-    entry_id: int, datos: PokedexEntryUpdate, usuario: CurrentUser, session: SessionDep
+def actualizar(
+    request: Request, entry_id: int, datos: PokedexEntryUpdate, usuario: CurrentUser, session: SessionDep
 ):
     entrada = _entrada_propia(session, entry_id, usuario)
     cambios = datos.model_dump(exclude_unset=True)
