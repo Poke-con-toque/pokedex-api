@@ -73,13 +73,13 @@ def test_export_csv_prevents_formula_injection(client, session, auth_headers, te
             pokemon_id=25,
             pokemon_name="pikachu",
             nickname="=HYPERLINK(\"http://malo\")",
-            notes="@SUM(A1)",
+            notes=" \\t=HYPERLINK(\\"http://malo\\")",
         )
     )
     session.commit()
     fila = leer_csv(client.get(EXPORT, headers=auth_headers))[0]
     assert fila["nickname"].startswith("'=")
-    assert fila["notes"] == "'@SUM(A1)"
+    assert fila["notes"] == "' \\t=HYPERLINK(\\"http://malo\\")"
 
 
 def test_export_pdf(client, session, auth_headers, test_user):
