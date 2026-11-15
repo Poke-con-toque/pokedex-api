@@ -1,5 +1,6 @@
 """Gestión de equipos de batalla propiedad de cada usuario."""
 
+import asyncio
 import re
 from datetime import datetime
 
@@ -9,7 +10,7 @@ from sqlmodel import select
 
 from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
 from app.models import PokedexEntry, Team, TeamMember
-from app.services.pdf_service import crear_pdf_equipo
+from app.services.pdf_service import crear_pdf_equipo, descargar_sprites
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
@@ -168,12 +169,12 @@ async def exportar_equipo(
         session.get(PokedexEntry, miembro.pokedex_entry_id)
         for miembro in miembros
     ]
-    pokemon = [
-        await poke.get_pokemon(entrada.pokemon_id)
-        for entrada in entradas
-        if entrada is not None
-    ]
-    contenido = crear_pdf_equipo(equipo.name, equipo.description, pokemon)
+    # Fichas y sprites se piden en paralelo: con 6 Pokémon, uno detrás de otro tardaría 6 veces más.
+    pokemon = await asyncio.gather(
+        *(poke.get_pokemon(entrada.pokemon_id) for entrada in entradas if entrada is not None)
+    )
+    sprites = await descargar_sprites([ficha["sprite"] for ficha in pokemon])
+    contenido = crear_pdf_equipo(equipo.name, equipo.description, list(pokemon), sprites)
     nombre_archivo = re.sub(r"[^a-zA-Z0-9_-]+", "-", equipo.name).strip("-").lower() or "equipo"
     return Response(
         content=contenido,
