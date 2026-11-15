@@ -90,3 +90,22 @@ def test_no_se_puede_ver_modificar_ni_borrar_equipo_ajeno(
     assert client.get(ruta, headers=auth_headers).status_code == 404
     assert client.put(ruta, json={"name": "Cambio", "pokemon_ids": []}, headers=auth_headers).status_code == 404
     assert client.delete(ruta, headers=auth_headers).status_code == 404
+
+
+def test_equipo_rechaza_pokemon_repetidos(client, auth_headers):
+    respuesta = client.post(
+        "/api/v1/teams",
+        json={"name": "Repetidos", "pokemon_ids": [25, 25]},
+        headers=auth_headers,
+    )
+    assert respuesta.status_code == 422
+
+
+def test_borrar_equipo(client, auth_headers, pokeapi):
+    anadir_pokemon(client, auth_headers, 25)
+    creado = client.post(
+        "/api/v1/teams", json={"name": "Temporal", "pokemon_ids": [25]}, headers=auth_headers
+    ).json()
+    ruta = f"/api/v1/teams/{creado['id']}"
+    assert client.delete(ruta, headers=auth_headers).status_code == 204
+    assert client.get(ruta, headers=auth_headers).status_code == 404
