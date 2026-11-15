@@ -1,8 +1,9 @@
 """CRUD de la Pokédex personal: cada usuario sólo ve y toca lo suyo."""
 
-from typing import Literal
+from dataclasses import dataclass
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import func, select
 
@@ -24,6 +25,32 @@ ORDENABLE = {
     "pokemon_name": PokedexEntry.pokemon_name,
     "capture_date": PokedexEntry.capture_date,
 }
+
+
+@dataclass
+class FiltrosPokedex:
+    """Filtros, orden y paginación del listado. Los comparten /api/v1 y /api/v2."""
+
+    captured: bool | None = None
+    favorite: bool | None = None
+    sort: Literal["pokemon_id", "pokemon_name", "capture_date"] = "pokemon_id"
+    order: Literal["asc", "desc"] = "asc"
+    limit: int = Query(default=20, ge=1, le=100)
+    offset: int = Query(default=0, ge=0)
+
+
+Filtros = Annotated[FiltrosPokedex, Depends()]
+
+
+def entradas_filtradas(session, usuario_id: int, filtros: FiltrosPokedex) -> list[PokedexEntry]:
+    consulta = select(PokedexEntry).where(PokedexEntry.owner_id == usuario_id)
+    if filtros.captured is not None:
+        consulta = consulta.where(PokedexEntry.is_captured == filtros.captured)
+    if filtros.favorite is not None:
+        consulta = consulta.where(PokedexEntry.favorite == filtros.favorite)
+    columna = ORDENABLE[filtros.sort]
+    consulta = consulta.order_by(columna.desc() if filtros.order == "desc" else columna.asc())
+    return session.exec(consulta.offset(filtros.offset).limit(filtros.limit)).all()
 
 
 @router.post("", response_model=PokedexEntryRead, status_code=status.HTTP_201_CREATED)
@@ -62,24 +89,8 @@ async def anadir(
 
 
 @router.get("", response_model=list[PokedexEntryRead])
-def listar(
-    usuario: CurrentUser,
-    session: SessionDep,
-    captured: bool | None = None,
-    favorite: bool | None = None,
-    sort: Literal["pokemon_id", "pokemon_name", "capture_date"] = "pokemon_id",
-    order: Literal["asc", "desc"] = "asc",
-    limit: int = Query(default=20, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
-):
-    consulta = select(PokedexEntry).where(PokedexEntry.owner_id == usuario.id)
-    if captured is not None:
-        consulta = consulta.where(PokedexEntry.is_captured == captured)
-    if favorite is not None:
-        consulta = consulta.where(PokedexEntry.favorite == favorite)
-    columna = ORDENABLE[sort]
-    consulta = consulta.order_by(columna.desc() if order == "desc" else columna.asc())
-    return session.exec(consulta.offset(offset).limit(limit)).all()
+def listar(usuario: CurrentUser, session: SessionDep, filtros: Filtros):
+    return entradas_filtradas(session, usuario.id, filtros)
 
 
 def _contar(session, *condiciones) -> int:
