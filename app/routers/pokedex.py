@@ -186,10 +186,10 @@ def _fila(entrada: PokedexEntry) -> dict:
 
 
 def _celda_csv(valor) -> str:
-    """Evita la inyección de fórmulas: Excel ejecuta celdas que empiezan por = + - @."""
+    """Evita fórmulas en Excel incluso si comienzan tras espacios o controles."""
     texto = "" if valor is None else str(valor)
-    return f"'{texto}" if texto[:1] in ("=", "+", "-", "@", "\t", "\r") else texto
-
+    potencial_formula = texto.lstrip(" \t\r\n")
+    return f"'{texto}" if potencial_formula[:1] in ("=", "+", "-", "@") else texto
 
 def _csv(filas: list[dict]) -> bytes:
     salida = io.StringIO()
