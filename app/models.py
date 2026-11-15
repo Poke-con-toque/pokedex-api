@@ -91,6 +91,11 @@ class PokedexEntryRead(PokedexEntryBase):
     created_at: datetime
 
 
+class PokedexEntryV2Read(PokedexEntryRead):
+    # v2 añade la cadena evolutiva: ["pichu", "pikachu", "raichu"].
+    evolution_chain: list[str]
+
+
 class PokedexEntryUpdate(SQLModel):
     # Todo opcional: PATCH sólo toca lo que llega.
     nickname: str | None = Field(default=None, max_length=50)
@@ -156,3 +161,32 @@ class TeamMember(SQLModel, table=True):
     position: int = Field(ge=1, le=6)
 
     team: Team | None = Relationship(back_populates="members")
+
+
+class TeamCreate(SQLModel):
+    # También sirve para PUT: el equipo se reemplaza entero (nombre, descripción y miembros).
+    name: str = Field(min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    pokemon_ids: list[int] = Field(default_factory=list, max_length=6)
+
+    @field_validator("pokemon_ids")
+    @classmethod
+    def sin_repetidos(cls, ids: list[int]) -> list[int]:
+        if len(ids) != len(set(ids)):
+            raise ValueError("No se permiten Pokémon repetidos")
+        return ids
+
+
+class TeamMemberRead(SQLModel):
+    pokemon_id: int
+    pokemon_name: str
+    pokemon_sprite: str | None
+    position: int
+
+
+class TeamRead(SQLModel):
+    id: int
+    name: str
+    description: str | None
+    created_at: datetime
+    members: list[TeamMemberRead]

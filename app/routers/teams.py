@@ -2,45 +2,22 @@
 
 import asyncio
 import re
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Response, status
-from pydantic import BaseModel, Field, field_validator
 from sqlmodel import select
 
 from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
-from app.models import PokedexEntry, Team, TeamMember
+from app.models import (
+    PokedexEntry,
+    Team,
+    TeamCreate,
+    TeamMember,
+    TeamMemberRead,
+    TeamRead,
+)
 from app.services.pdf_service import crear_pdf_equipo, descargar_sprites
 
 router = APIRouter(prefix="/teams", tags=["teams"])
-
-
-class TeamCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
-    description: str | None = None
-    pokemon_ids: list[int] = Field(default_factory=list, max_length=6)
-
-    @field_validator("pokemon_ids")
-    @classmethod
-    def sin_repetidos(cls, ids: list[int]) -> list[int]:
-        if len(ids) != len(set(ids)):
-            raise ValueError("No se permiten Pokémon repetidos")
-        return ids
-
-
-class TeamMemberRead(BaseModel):
-    pokemon_id: int
-    pokemon_name: str
-    pokemon_sprite: str | None
-    position: int
-
-
-class TeamRead(BaseModel):
-    id: int
-    name: str
-    description: str | None
-    created_at: datetime
-    members: list[TeamMemberRead]
 
 
 def _equipo_propio(session: SessionDep, team_id: int, usuario: CurrentUser) -> Team:
