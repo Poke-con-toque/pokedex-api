@@ -1,7 +1,6 @@
 """Pruebas de exportación de equipos y estadísticas combinadas."""
 
 from app.models import Team
-from app.services import pdf_service
 from app.services.pdf_service import calcular_estadisticas_equipo
 
 
@@ -18,8 +17,7 @@ def test_estadisticas_combinadas_suman_y_promedian():
     assert resultado["types"] == ["electric", "ice", "water"]
 
 
-def test_exportar_equipo_devuelve_pdf(client, auth_headers, pokeapi, monkeypatch):
-    monkeypatch.setattr(pdf_service, "_descargar_sprite", lambda _url: None)
+def test_exportar_equipo_devuelve_pdf(client, auth_headers, pokeapi):
     client.post("/api/v1/pokedex", json={"pokemon_id": 25}, headers=auth_headers)
     equipo = client.post(
         "/api/v1/teams",
@@ -42,3 +40,18 @@ def test_no_exportar_equipo_ajeno(client, session, auth_headers, other_user):
 
     respuesta = client.get(f"/api/v1/teams/{equipo.id}/export", headers=auth_headers)
     assert respuesta.status_code == 404
+
+
+def test_exportar_equipo_con_nombre_con_caracteres_especiales(client, auth_headers, pokeapi):
+    client.post("/api/v1/pokedex", json={"pokemon_id": 25}, headers=auth_headers)
+    equipo = client.post(
+        "/api/v1/teams",
+        json={"name": "Equipo “Élite”", "description": "Mi equipo… — el mejor", "pokemon_ids": [25]},
+        headers=auth_headers,
+    ).json()
+
+    respuesta = client.get(f"/api/v1/teams/{equipo['id']}/export", headers=auth_headers)
+
+    assert respuesta.status_code == 200
+    assert respuesta.content.startswith(b"%PDF")
+    assert respuesta.headers["content-disposition"] == 'attachment; filename="equipo-equipo-lite.pdf"'

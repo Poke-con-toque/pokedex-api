@@ -20,7 +20,14 @@ from app.limits import limiter
 from app.main import app
 from app.models import User
 from app.services.pokeapi_service import limpiar_cache
-from tests.pokeapi_mocks import BASE, DATOS, lista_bruta, pokemon_bruto
+from tests.pokeapi_mocks import (
+    BASE,
+    DATOS,
+    PNG_1X1,
+    SPRITES,
+    lista_bruta,
+    pokemon_bruto,
+)
 
 PASSWORD = "Pikachu2026"
 
@@ -118,4 +125,6 @@ def pokeapi():
             )
         )
         simulada.get(url__startswith=f"{BASE}/pokemon/").respond(404)
+        # Los sprites también se simulan: los PDF los descargan y los tests no salen a Internet.
+        simulada.get(url__startswith=SPRITES).respond(content=PNG_1X1)
         yield simulada

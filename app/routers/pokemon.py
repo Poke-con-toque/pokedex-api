@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, Response
 
 from app.dependencies import CurrentUser, ServicioPokeAPI
 from app.models import PokemonDetail, PokemonSummary
-from app.services.pdf_service import crear_ficha_pokemon
+from app.services.pdf_service import crear_ficha_pokemon, descargar_sprite
 
 router = APIRouter(prefix="/pokemon", tags=["pokemon"])
 
@@ -42,8 +42,10 @@ async def buscar_pokemon(
 async def ficha_pokemon(id_or_name: str, usuario: CurrentUser, poke: ServicioPokeAPI):
     """Descarga una ficha PDF con los datos principales del Pokémon."""
     pokemon = await poke.get_pokemon(id_or_name)
-    especie = await poke.get_pokemon_species(pokemon["id"])
-    contenido = crear_ficha_pokemon(pokemon, especie.get("description"))
+    especie, sprite = await asyncio.gather(
+        poke.get_pokemon_species(pokemon["id"]), descargar_sprite(pokemon["sprite"])
+    )
+    contenido = crear_ficha_pokemon(pokemon, especie.get("description"), sprite)
     return Response(
         content=contenido,
         media_type="application/pdf",

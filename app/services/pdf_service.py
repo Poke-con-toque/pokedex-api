@@ -1,5 +1,6 @@
 """Funciones PDF reutilizables para fichas de Pokémon y equipos."""
 
+import asyncio
 import logging
 from io import BytesIO
 
@@ -10,61 +11,97 @@ from fpdf.errors import FPDFException
 logger = logging.getLogger("pokedex_api.pdf")
 ESTADISTICAS = (("HP", "hp"), ("Attack", "attack"), ("Defense", "defense"), ("Speed", "speed"))
 
+# Las fuentes estándar del PDF (Helvetica) sólo admiten Latin-1: las tildes y la ñ sí,
+# pero no comillas tipográficas, guiones largos o puntos suspensivos, que sí aparecen
+# en las descripciones de la PokeAPI o en el nombre que el usuario da a un equipo.
+# Sin esta traducción, fpdf2 lanza una excepción y el endpoint responde 500.
+EQUIVALENCIAS = str.maketrans(
+    {
+        "‘": "'", "’": "'", "‚": "'", "“": '"', "”": '"', "„": '"',
+        "–": "-", "—": "-", "―": "-", "−": "-",
+        "…": "...", "•": "·", " ": " ", " ": " ", " ": " ",
+        "♀": " (hembra)", "♂": " (macho)",
+    }
+)
 
-def _descargar_sprite(url: str | None) -> BytesIO | None:
+
+def _texto(valor: object) -> str:
+    """Convierte cualquier texto a algo que Helvetica pueda escribir."""
+    texto = str(valor).translate(EQUIVALENCIAS)
+    # Lo que aún no sea Latin-1 (emojis, otros alfabetos…) se sustituye por «?».
+    return texto.encode("latin-1", errors="replace").decode("latin-1")
+
+
+async def descargar_sprite(url: str | None) -> bytes | None:
+    """Descarga un sprite sin bloquear la API; si falla, la ficha se genera sin imagen."""
     if not url:
         return None
     try:
-        respuesta = httpx.get(url, timeout=3.0)
+        async with httpx.AsyncClient(timeout=3.0) as cliente:
+            respuesta = await cliente.get(url)
         respuesta.raise_for_status()
-        return BytesIO(respuesta.content)
-    except (httpx.HTTPError, OSError) as error:
+        return respuesta.content
+    except httpx.HTTPError as error:
         logger.warning("No se pudo descargar el sprite %s: %s", url, error)
         return None
 
 
-def agregar_ficha_pokemon(pdf: FPDF, pokemon: dict, descripcion: str | None = None) -> None:
-    """Añade a la página activa una ficha de Pokémon."""
-    pdf.set_font("Helvetica", "B", 20)
-    pdf.cell(0, 12, f"#{pokemon['id']} {pokemon['name'].title()}", new_x="LMARGIN", new_y="NEXT")
+async def descargar_sprites(urls: list[str | None]) -> list[bytes | None]:
+    """Descarga varios sprites a la vez, no uno detrás de otro."""
+    return list(await asyncio.gather(*(descargar_sprite(url) for url in urls)))
 
-    sprite = _descargar_sprite(pokemon.get("sprite"))
+
+def _titulo(pdf: FPDF, texto: str, tamano: int = 12) -> None:
+    pdf.set_font("Helvetica", "B", tamano)
+    pdf.cell(0, 9 if tamano <= 12 else 12, _texto(texto), new_x="LMARGIN", new_y="NEXT")
+
+
+def _parrafo(pdf: FPDF, texto: str) -> None:
+    pdf.set_font("Helvetica", size=11)
+    pdf.multi_cell(0, 7, _texto(texto), new_x="LMARGIN", new_y="NEXT")
+
+
+def agregar_ficha_pokemon(
+    pdf: FPDF,
+    pokemon: dict,
+    descripcion: str | None = None,
+    sprite: bytes | None = None,
+) -> None:
+    """Añade a la página activa una ficha de Pokémon."""
+    _titulo(pdf, f"#{pokemon['id']} {pokemon['name'].title()}", tamano=20)
+
     if sprite is not None:
         try:
-            pdf.image(sprite, x=150, y=25, w=40, h=40)
+            pdf.image(BytesIO(sprite), x=150, y=25, w=40, h=40)
         except (FPDFException, OSError, TypeError, ValueError):
             logger.warning("El sprite de %s no tiene un formato compatible", pokemon["name"])
 
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 9, "Tipos", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", size=11)
-    pdf.multi_cell(0, 7, ", ".join(pokemon.get("types", [])) or "Sin datos")
+    _titulo(pdf, "Tipos")
+    _parrafo(pdf, ", ".join(pokemon.get("types", [])) or "Sin datos")
 
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 9, "Estadísticas", new_x="LMARGIN", new_y="NEXT")
+    _titulo(pdf, "Estadísticas")
     pdf.set_font("Helvetica", size=11)
     for etiqueta, clave in ESTADISTICAS:
         valor = (pokemon.get("stats") or {}).get(clave)
-        pdf.cell(0, 7, f"{etiqueta}: {valor if valor is not None else '—'}", new_x="LMARGIN", new_y="NEXT")
+        linea = f"{etiqueta}: {valor if valor is not None else '-'}"
+        pdf.cell(0, 7, _texto(linea), new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 9, "Habilidades", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", size=11)
-    pdf.multi_cell(0, 7, ", ".join(pokemon.get("abilities", [])) or "Sin datos")
+    _titulo(pdf, "Habilidades")
+    _parrafo(pdf, ", ".join(pokemon.get("abilities", [])) or "Sin datos")
 
     if descripcion:
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.cell(0, 9, "Descripción", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("Helvetica", size=11)
-        pdf.multi_cell(0, 7, descripcion)
+        _titulo(pdf, "Descripción")
+        _parrafo(pdf, descripcion)
 
 
-def crear_ficha_pokemon(pokemon: dict, descripcion: str | None = None) -> bytes:
-    """Genera una ficha PDF; si el sprite falla, conserva el resto del documento."""
+def crear_ficha_pokemon(
+    pokemon: dict, descripcion: str | None = None, sprite: bytes | None = None
+) -> bytes:
+    """Genera una ficha PDF; si no hay sprite, conserva el resto del documento."""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
-    agregar_ficha_pokemon(pdf, pokemon, descripcion)
+    agregar_ficha_pokemon(pdf, pokemon, descripcion, sprite)
     return bytes(pdf.output())
 
 
@@ -80,33 +117,35 @@ def calcular_estadisticas_equipo(pokemon: list[dict]) -> dict:
     return {"sum": sumas, "average": medias, "types": tipos}
 
 
-def crear_pdf_equipo(nombre: str, descripcion: str | None, pokemon: list[dict]) -> bytes:
+def crear_pdf_equipo(
+    nombre: str,
+    descripcion: str | None,
+    pokemon: list[dict],
+    sprites: list[bytes | None] | None = None,
+) -> bytes:
     """Genera un PDF del equipo con una ficha por Pokémon y estadísticas combinadas."""
+    sprites = sprites or [None] * len(pokemon)
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 20)
-    pdf.cell(0, 12, f"Equipo: {nombre}", new_x="LMARGIN", new_y="NEXT")
+    _titulo(pdf, f"Equipo: {nombre}", tamano=20)
     if descripcion:
-        pdf.set_font("Helvetica", size=11)
-        pdf.multi_cell(0, 7, descripcion)
+        _parrafo(pdf, descripcion)
 
-    for ficha in pokemon:
+    for ficha, sprite in zip(pokemon, sprites, strict=True):
         pdf.add_page()
-        agregar_ficha_pokemon(pdf, ficha)
+        agregar_ficha_pokemon(pdf, ficha, sprite=sprite)
 
     calculadas = calcular_estadisticas_equipo(pokemon)
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 12, "Estadísticas combinadas", new_x="LMARGIN", new_y="NEXT")
+    _titulo(pdf, "Estadísticas combinadas", tamano=18)
     pdf.set_font("Helvetica", size=11)
     for etiqueta, clave in ESTADISTICAS:
-        pdf.cell(
-            0,
-            8,
-            f"{etiqueta}: suma {calculadas['sum'][clave]} · media {calculadas['average'][clave]}",
-            new_x="LMARGIN",
-            new_y="NEXT",
+        linea = (
+            f"{etiqueta}: suma {calculadas['sum'][clave]} · "
+            f"media {calculadas['average'][clave]}"
         )
-    pdf.cell(0, 8, f"Tipos cubiertos: {', '.join(calculadas['types']) or 'Sin datos'}")
+        pdf.cell(0, 8, _texto(linea), new_x="LMARGIN", new_y="NEXT")
+    tipos = ", ".join(calculadas["types"]) or "Sin datos"
+    pdf.cell(0, 8, _texto(f"Tipos cubiertos: {tipos}"))
     return bytes(pdf.output())
