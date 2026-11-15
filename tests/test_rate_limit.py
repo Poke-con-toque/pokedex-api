@@ -13,6 +13,8 @@ def test_rate_limit_exceeded(client):
         assert client.post(LOGIN, data=datos).status_code == 401
     respuesta = client.post(LOGIN, data=datos)
     assert respuesta.status_code == 429
+    # Mismo formato de error que el resto de la API.
+    assert respuesta.json() == {"detail": "Demasiadas peticiones: límite de 10 per 1 minute"}
 
 
 def test_register_limited_to_5_per_hour(client):

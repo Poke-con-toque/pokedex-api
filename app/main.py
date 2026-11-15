@@ -9,7 +9,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -54,7 +53,12 @@ def registrar_rate_limit(request: Request, exc: RateLimitExceeded):
         request.url.path,
         request.client.host if request.client else "desconocido",
     )
-    return _rate_limit_exceeded_handler(request, exc)
+    # Mismo formato que el resto de errores de la API: {"detail": ...}.
+    # (El manejador de slowapi devolvería {"error": ...}.)
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Demasiadas peticiones: límite de {exc.detail}"},
+    )
 
 
 app.state.limiter = limiter
