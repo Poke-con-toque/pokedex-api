@@ -1,6 +1,8 @@
 """CRUD de la Pokédex personal: cada usuario sólo ve y toca lo suyo."""
 
+from collections import Counter
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -14,6 +16,7 @@ from app.models import (
     PokedexEntryCreate,
     PokedexEntryRead,
     PokedexEntryUpdate,
+    PokedexStats,
     TeamMember,
     ahora,
 )
@@ -104,20 +107,54 @@ def _contar(session, *condiciones) -> int:
     return session.exec(consulta).one()
 
 
+def tipo_mas_comun(tipos_por_entrada: list[str | None]) -> str | None:
+    """Tipo que más se repite en la Pokédex; si empatan, el primero alfabéticamente."""
+    contador = Counter(
+        tipo for tipos in tipos_por_entrada if tipos for tipo in tipos.split(",")
+    )
+    if not contador:
+        return None
+    return min(contador, key=lambda tipo: (-contador[tipo], tipo))
+
+
+def racha_de_capturas(fechas: list[datetime], hoy: date) -> int:
+    """Días seguidos con al menos una captura, contando hacia atrás desde hoy.
+
+    Si hoy todavía no has capturado, la racha cuenta desde ayer: no se pierde
+    hasta que termina el día sin capturar.
+    """
+    dias = {fecha.date() for fecha in fechas}
+    dia = hoy if hoy in dias else hoy - timedelta(days=1)
+    racha = 0
+    while dia in dias:
+        racha += 1
+        dia -= timedelta(days=1)
+    return racha
+
+
 # /stats va ANTES que /{entry_id}: si no, FastAPI intentaría leer "stats" como un id.
-@router.get("/stats")
+@router.get("/stats", response_model=PokedexStats)
 @limiter.limit(LIMITE_GENERAL)
 def estadisticas(request: Request, usuario: CurrentUser, session: SessionDep):
     mias = PokedexEntry.owner_id == usuario.id
     total = _contar(session, mias)
     capturados = _contar(session, mias, PokedexEntry.is_captured)
     favoritos = _contar(session, mias, PokedexEntry.favorite)
+    # Como en clase: porcentaje de tu Pokédex que ya has capturado.
     porcentaje = round(100 * capturados / total, 1) if total else 0.0
+    tipos = session.exec(select(PokedexEntry.pokemon_types).where(mias)).all()
+    fechas = session.exec(
+        select(PokedexEntry.capture_date).where(
+            mias, PokedexEntry.is_captured, PokedexEntry.capture_date.is_not(None)
+        )
+    ).all()
     return {
         "total_pokemon": total,
         "captured": capturados,
         "favorites": favoritos,
         "completion_percentage": porcentaje,
+        "most_common_type": tipo_mas_comun(tipos),
+        "capture_streak_days": racha_de_capturas(fechas, ahora().date()),
     }
 
 

@@ -91,6 +91,15 @@ class PokedexEntryRead(PokedexEntryBase):
     created_at: datetime
 
 
+class PokedexStats(SQLModel):
+    total_pokemon: int
+    captured: int
+    favorites: int
+    completion_percentage: float
+    most_common_type: str | None
+    capture_streak_days: int
+
+
 class PokedexEntryV2Read(PokedexEntryRead):
     # v2 añade la cadena evolutiva: ["pichu", "pikachu", "raichu"].
     evolution_chain: list[str]
