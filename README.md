@@ -40,7 +40,7 @@ También se pueden instalar las dependencias con `pip install -r requirements.tx
 | `POKEAPI_TIMEOUT` | Tiempo máximo de espera para PokeAPI, en segundos | `5` |
 | `POKEAPI_FALLBACK` | Activa datos locales de reserva si PokeAPI no responde | `false` |
 | `ALGORITHM` | Algoritmo de firma JWT | `HS256` por defecto |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del token de acceso | `1440` por defecto |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del token de acceso | `1440` por defecto |\n| `TOTAL_POKEMON` | Número de especies para calcular el porcentaje de Pokédex completada | `1025` por defecto |
 
 No subas el archivo `.env` ni claves reales al repositorio.
 
@@ -132,7 +132,7 @@ Las rutas llevan un prefijo explícito: `/api/v1` o `/api/v2`. Se abre una versi
 - Se sigue la estructura de la práctica guiada de clase: `uv` para las dependencias (con `requirements.txt` generado para el CI), contratos Base → Table → Create / Read / Update en `models.py` y dependencias `SessionDep`, `CurrentUser` y `ServicioPokeAPI`.
 - Las contraseñas usan `bcrypt` directamente en lugar de `passlib`, que no se mantiene y falla con `bcrypt` 5.
 - Se usa SQLModel para validar datos y parametrizar consultas; los parámetros de orden se traducen a columnas y nunca se insertan en el SQL.
-- `completion_percentage` es el porcentaje de la Pokédex del usuario que ya está capturado. `most_common_type` se calcula con los tipos que se guardan al añadir cada Pokémon (si hay empate, el primero alfabéticamente). `capture_streak_days` cuenta los días seguidos con alguna captura hasta hoy, o hasta ayer si hoy aún no hay ninguna.
+- `completion_percentage` es el porcentaje de Pokémon existentes que ya se han capturado: capturados / `TOTAL_POKEMON` × 100 (`1025` por defecto). `most_common_type` se calcula con los tipos que se guardan al añadir cada Pokémon (si hay empate, el primero alfabéticamente). `capture_streak_days` cuenta los días seguidos con alguna captura hasta hoy, o hasta ayer si hoy aún no hay ninguna.
 - Los PDF se generan con `fpdf2`. Los sprites se descargan de forma asíncrona y en paralelo; si fallan, el PDF se genera sin imagen.
 - Las respuestas de PokeAPI se reducen a los campos que consume la aplicación y se mantienen en caché en memoria.
 - La integración continua usa datos de prueba y mocks; no necesita llamar a PokeAPI.
