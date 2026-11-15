@@ -24,3 +24,18 @@ jobs:
         run: ruff check .
       - name: Ejecutar tests con cobertura
         run: pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+
+  deploy:
+    name: Deploy to Render
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: tests
+    runs-on: ubuntu-latest
+    env:
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Trigger Render deployment
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
+        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
+      - name: Skip until the Render deploy hook is configured
+        if: env.RENDER_DEPLOY_HOOK_URL == ''
+        run: echo "RENDER_DEPLOY_HOOK_URL is not configured; skipping deployment."
