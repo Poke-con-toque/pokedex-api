@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     # Si la PokeAPI está caída, responder con los datos de reserva de pokeapi_fallback.py.
     pokeapi_fallback: bool = False
     cors_origins: list[str] = ["http://localhost:5173"]
+    # Número total de especies disponibles, configurable para futuras actualizaciones.
+    total_pokemon: int = 1025
 
 
 settings = Settings()
