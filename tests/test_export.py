@@ -73,7 +73,7 @@ def test_export_csv_prevents_formula_injection(client, session, auth_headers, te
             pokemon_id=25,
             pokemon_name="pikachu",
             nickname="=HYPERLINK(\"http://malo\")",
-                notes=" =SUM(A1)"
+            notes=" =SUM(A1)",
         )
     )
     session.commit()
