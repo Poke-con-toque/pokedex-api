@@ -76,7 +76,7 @@ Además:
 |---|---|---|
 | `SECRET_KEY` | **Sí** | Firma de los JWT. Quien la tenga puede fabricar tokens de cualquier usuario |
 | `DATABASE_URL` | **Sí** en producción | En PostgreSQL incluye usuario y contraseña de la base de datos |
-| `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Configuración de los JWT |
+| `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `TOTAL_POKEMON` | No | Configuración de los JWT y del cálculo de completitud |
 | `CORS_ORIGINS`, `POKEAPI_*` | No | Configuración del servicio |
 
 **Cómo protegerla**:
