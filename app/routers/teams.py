@@ -3,10 +3,11 @@
 import asyncio
 import re
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from sqlmodel import select
 
 from app.dependencies import CurrentUser, ServicioPokeAPI, SessionDep
+from app.limits import LIMITE_GENERAL, LIMITE_POKEAPI, limiter
 from app.models import (
     PokedexEntry,
     Team,
@@ -85,7 +86,8 @@ def _crear_miembros(session: SessionDep, equipo: Team, entradas: dict[int, Poked
 
 
 @router.post("", response_model=TeamRead, status_code=status.HTTP_201_CREATED)
-def crear(datos: TeamCreate, usuario: CurrentUser, session: SessionDep):
+@limiter.limit(LIMITE_GENERAL)
+def crear(request: Request, datos: TeamCreate, usuario: CurrentUser, session: SessionDep):
     entradas = _entradas_de_usuario(session, usuario, datos.pokemon_ids)
     equipo = Team(
         trainer_id=usuario.id,
@@ -101,7 +103,8 @@ def crear(datos: TeamCreate, usuario: CurrentUser, session: SessionDep):
 
 
 @router.get("", response_model=list[TeamRead])
-def listar(usuario: CurrentUser, session: SessionDep):
+@limiter.limit(LIMITE_GENERAL)
+def listar(request: Request, usuario: CurrentUser, session: SessionDep):
     equipos = session.exec(
         select(Team).where(Team.trainer_id == usuario.id).order_by(Team.id)
     ).all()
@@ -109,12 +112,14 @@ def listar(usuario: CurrentUser, session: SessionDep):
 
 
 @router.get("/{team_id}", response_model=TeamRead)
-def detalle(team_id: int, usuario: CurrentUser, session: SessionDep):
+@limiter.limit(LIMITE_GENERAL)
+def detalle(request: Request, team_id: int, usuario: CurrentUser, session: SessionDep):
     return _serializar(session, _equipo_propio(session, team_id, usuario))
 
 
 @router.put("/{team_id}", response_model=TeamRead)
-def actualizar(team_id: int, datos: TeamCreate, usuario: CurrentUser, session: SessionDep):
+@limiter.limit(LIMITE_GENERAL)
+def actualizar(request: Request, team_id: int, datos: TeamCreate, usuario: CurrentUser, session: SessionDep):
     equipo = _equipo_propio(session, team_id, usuario)
     entradas = _entradas_de_usuario(session, usuario, datos.pokemon_ids)
     equipo.name = datos.name
@@ -130,7 +135,9 @@ def actualizar(team_id: int, datos: TeamCreate, usuario: CurrentUser, session: S
 
 
 @router.get("/{team_id}/export")
+@limiter.limit(LIMITE_POKEAPI)  # pide la ficha de cada Pokémon a la PokeAPI
 async def exportar_equipo(
+    request: Request,
     team_id: int,
     usuario: CurrentUser,
     session: SessionDep,
@@ -161,7 +168,8 @@ async def exportar_equipo(
 
 
 @router.delete("/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
-def borrar(team_id: int, usuario: CurrentUser, session: SessionDep):
+@limiter.limit(LIMITE_GENERAL)
+def borrar(request: Request, team_id: int, usuario: CurrentUser, session: SessionDep):
     equipo = _equipo_propio(session, team_id, usuario)
     session.delete(equipo)
     session.commit()

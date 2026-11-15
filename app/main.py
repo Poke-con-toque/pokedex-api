@@ -100,5 +100,6 @@ app.include_router(v2.router, prefix="/api/v2")
 
 
 @app.get("/health", tags=["sistema"])
+@limiter.exempt  # lo usan los balanceadores y la monitorización: no se limita
 def health():
     return {"status": "ok"}
